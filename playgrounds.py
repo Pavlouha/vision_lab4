@@ -25,29 +25,34 @@ if __name__ == '__main__':
     if tracker_type == 'MOSSE':
         tracker = cv2.TrackerMOSSE_create()
 
-    # Достаём модель
+    # Open our model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = alexnet(pretrained=True).eval().cuda()
     classes = read_classes()
 
-    # параметр 0 для видевокамеры, 'traffic.mp4' для видевы
-    video = cv2.VideoCapture(0)
+    # параметр 0 для камеры, 'traffic.mp4' для видео
+    video = cv2.VideoCapture('Untitled.mp4')
 
-    # Читаем первый кадр
+    # read 1st frame
     ok, frame = video.read()
 
-    # x, y, w, h - контур кодом
-    #bbox = (287, 23, 86, 320)
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    vw = frame.shape[1]
+    vh = frame.shape[0]
+    print("Video size", vw, vh)
+    outvideo = cv2.VideoWriter("out.mp4", fourcc, 20.0, (vw, vh))
 
-    #будем кадры считать
+    # x, y, w, h - контур кодом
+    # bbox = (287, 23, 86, 320)
+
+    # frame counter
     index = 0
 
-    # Выбираем собственный контур мышкой - первый y, второй - икс
+    # Выбираем собственный контур мышкой y,x
     bbox = cv2.selectROI(frame, False)
+    # cv2.imwrite("roi.png", roi)
 
-    #cv2.imwrite("roi.png", roi)
-
-    # Initialize tracker with first frame and bounding box
+    # Initialize tracker
     ok = tracker.init(frame, bbox)
 
     while True:
@@ -57,16 +62,6 @@ if __name__ == '__main__':
 
         timer = cv2.getTickCount()
         ok, bbox = tracker.update(frame)
-        if index==0:
-            roi = frame[int(bbox[1]):int(bbox[1]) + int(bbox[2]), int(bbox[0]):int(bbox[0]) + int(bbox[3])]
-            pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            predicted = predict_image(pil_img, model, device, classes)
-
-        if index==50:
-            roi = frame[int(bbox[1]):int(bbox[1]) + int(bbox[2]), int(bbox[0]):int(bbox[0]) + int(bbox[3])]
-            pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            predicted = predict_image(pil_img, model, device, classes)
-            index=0
 
         # Calculate FPS
         fps = cv2.getTickFrequency() / (cv2.getTickCount() - timer)
@@ -74,23 +69,39 @@ if __name__ == '__main__':
         # Draw bounding box
         if ok:
             # Tracking success
+            if index == 0:
+                roi = frame[int(bbox[1]):int(bbox[1]) + int(bbox[2]), int(bbox[0]):int(bbox[0]) + int(bbox[3])]
+                pil_img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+                predicted = predict_image(pil_img, model, device, classes)
+
+            if index == 50:
+                roi = frame[int(bbox[1]):int(bbox[1]) + int(bbox[2]), int(bbox[0]):int(bbox[0]) + int(bbox[3])]
+                pil_img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
+                predicted = predict_image(pil_img, model, device, classes)
+                index = 0
+
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
             cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
         else:
             # Tracking failure
-            cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+            cv2.putText(frame, "Tracking failed", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
 
         # Display tracker type on frame
-        #cv2.putText(frame, tracker_type + " Tracker", (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
+        # cv2.putText(frame, tracker_type + " Tracker", (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
 
-        cv2.putText(frame, 'Class: '+predicted, (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
-        # ФПС
+        cv2.putText(frame, 'Class: ' + predicted, (100, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
+        # fps
         cv2.putText(frame, "FPS : " + str(int(fps)), (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 170, 50), 2)
 
-        # Результат
+        index = index + 1
+        # Result
+        # cv2.resizeWindow("Tracking",800, 600)
         cv2.imshow("Tracking", frame)
-
+        outvideo.write(frame)
         # Exit if ESC pressed
         k = cv2.waitKey(1) & 0xff
         if k == 27: break
+
+    cv2.destroyAllWindows()
+    outvideo.release()
