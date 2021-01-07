@@ -7,9 +7,9 @@ from utils import read_classes, predict_image
 
 if __name__ == '__main__':
 
-    # Различные трекеры - из стаковерфлоу
+    # Trackers (from StackOverflow)
     tracker_types = ['BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'CSRT', 'MOSSE']
-    tracker_type = tracker_types[6]
+    tracker_type = tracker_types[5]
     if tracker_type == 'BOOSTING':
         tracker = cv2.TrackerBoosting_create()
     if tracker_type == 'MIL':
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     classes = read_classes()
 
     # параметр 0 для камеры, 'traffic.mp4' для видео
-    video = cv2.VideoCapture('doge.mp4')
+    video = cv2.VideoCapture('banana_fhd.mp4')
 
     # read 1st frame
     ok, frame = video.read()
@@ -40,13 +40,13 @@ if __name__ == '__main__':
     vw = frame.shape[1]
     vh = frame.shape[0]
     print("Video size", vw, vh)
-    outvideo = cv2.VideoWriter("out.mp4", fourcc, 25.0, (vw, vh))
-
-    # x, y, w, h - контур кодом
-    # bbox = (287, 23, 86, 320)
+    outvideo = cv2.VideoWriter("out.mp4", fourcc, 30.0, (vw, vh))
 
     # frame counter
     index = 0
+
+    # x, y, w, h - контур кодом
+    # bbox = (287, 23, 86, 320)
 
     # Выбираем собственный контур мышкой y,x
     bbox = cv2.selectROI(frame, False)
@@ -78,7 +78,7 @@ if __name__ == '__main__':
                 roi = frame[int(bbox[1]):int(bbox[1]) + int(bbox[3]), int(bbox[0]):int(bbox[0]) + int(bbox[2])]
                 pil_img = Image.fromarray(cv2.cvtColor(roi, cv2.COLOR_BGR2RGB))
                 predicted = predict_image(pil_img, model, device, classes)
-                index = 0
+                index = 1
 
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
