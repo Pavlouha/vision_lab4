@@ -31,7 +31,7 @@ if __name__ == '__main__':
     classes = read_classes()
 
     # параметр 0 для камеры, 'traffic.mp4' для видео
-    video = cv2.VideoCapture('banana_fhd.mp4')
+    video = cv2.VideoCapture('doge.mp4')
 
     # read 1st frame
     ok, frame = video.read()
